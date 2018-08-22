@@ -16,9 +16,31 @@ def joint2limb(i):
 
 # Conversion to motion
 def rotation2motion(rot):
-    r2m_dict={D:
+    r = rospy.Rate(0.2)
+    r2m_dict={"U":new_joint_states[2],
+              "D":new_joint_states[4],
+              "L":new_joint_states[6],
+              "R":new_joint_states[0],
+              "F":new_joint_states[7],
+              "B":new_joint_states[1]
     }
-    
+    if "'" in rot:
+        n = 3
+        rot = rot[0]
+    elif "2" in rot:
+        n = 2
+        rot = rot[0]
+    else:
+        n = 1
+    limb_r = baxter_interface.Limb("right")
+    limb_l = baxter_interface.Limb("left")
+    [right_move, left_move] = joint2limb(r2m_dict[rot])
+    print "Right hand: ", rot
+    limb_r.move_to_joint_positions(right_move)
+    #r.sleep
+    print "Left hand: ", rot
+    limb_l.move_to_joint_positions(left_move)
+    r.sleep
     return
 
 #Recognition
@@ -33,18 +55,16 @@ def solution(kubic):
 #Manipulation
 
 def manipulation(sol):    
-    limb_r = baxter_interface.Limb("right")
-    limb_l = baxter_interface.Limb("left")
     sol = sol.split(" ")
     for i in sol:
-        
+        rotation2motion(i)
     return 1
 
 def main():
     rospy.init_node("rsm_kubic")
     kubic = recognition("")
     sol = solution(kubic)
-    Manipulation(sol)
+    manipulation(sol)
     
 if __name__ == "__main__":
     main()
