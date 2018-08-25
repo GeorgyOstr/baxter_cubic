@@ -2,6 +2,7 @@
 
 import rospy
 import baxter_interface
+from baxter_interface import gripper as baxter_gripper
 import pycuber
 from pycuber.solver import CFOPSolver
 from constant_parameters import right_prepare_position, joint_states, Joint_Names, new_joint_states
@@ -34,12 +35,41 @@ def rotation2motion(rot):
         n = 1
     limb_r = baxter_interface.Limb("right")
     limb_l = baxter_interface.Limb("left")
+    left_gripper = baxter_gripper.Gripper('left')
+    right_gripper = baxter_gripper.Gripper('right')
+    
     [right_move, left_move] = joint2limb(r2m_dict[rot])
-    print "Right hand: ", rot
+    print "Right hand: ", rot                        
     limb_r.move_to_joint_positions(right_move)
+    gripper = right_gripper
+    gripper.set_holding_force(50)
+    gripper.set_dead_band(1)
+    gripper.set_moving_force(80)
+    if n>=1:
+        gripper.open(block=True)
+        print("Opened Right gripper!")
+        rospy.sleep(1.0)
+    else:
+        gripper.close(block=True)
+        print("Closed Right gripper!")
+        rospy.sleep(1.0)
+    
     #r.sleep
     print "Left hand: ", rot
     limb_l.move_to_joint_positions(left_move)
+    gripper = left_gripper 
+    gripper.set_holding_force(50)
+    gripper.set_dead_band(1)
+    gripper.set_moving_force(80)
+    if n>=1:
+        gripper.open(block=True)
+        print("Opened Left gripper!")
+        rospy.sleep(1.0)
+    else:
+        gripper.close(block=True)
+        print("Closed Left gripper!")
+        rospy.sleep(1.0)
+                            
     r.sleep
     return
 
