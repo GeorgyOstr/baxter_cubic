@@ -1,29 +1,34 @@
 #!/usr/bin/python
 
+#ROS+Baxter
 import rospy
 import baxter_interface
 from baxter_interface import gripper
+
+#Kociemba+pycuber
 import pycuber
 from pycuber.solver import CFOPSolver
-from constant_parameters import right_prepare_position, joint_states, Joint_Names, new_joint_states
 import kociemba
-from math import pi
 
-r2m_dict={"U":new_joint_states[2],
-          "D":new_joint_states[4],
-          "L":new_joint_states[6],
-          "R":new_joint_states[0],
-          "F":new_joint_states[7],
-          "B":new_joint_states[1]
+#Constants
+from math import pi
+from joint_params import *
+
+r2m_dict={"U":[lh_U_c, rh_U, 0],
+          "D":[lh_D_c, rh_D, 0],
+          "L":[lh_L, rh_L_c, 1],
+          "R":[lh_R_c, rh_R, 0],
+          "F":[lh_F, rh_F_c, 1],
+          "B":[lh_B, rh_B_c, 1]
 }
 
-
-def joint2limb(i):
-    right_move = {'right_s0':i[11], 'right_s1':i[12], 'right_e0':i[9], 'right_e1':i[10],
-                  'right_w0':i[13], 'right_w1':i[14], 'right_w2':i[15]}
-    left_move = {'left_s0':i[4], 'left_s1':i[5], 'left_e0':i[2], 'left_e1':i[3],
-                 'left_w0':i[6], 'left_w1':i[7], 'left_w2':i[8]}
-    return [right_move, left_move]
+def grip_calibrate():
+    print "Calibrating grippers..."
+    grip_l = gripper.Gripper("left")
+    grip_r = gripper.Gripper("right")
+    grip_l.calibrate()
+    grip_r.calibrate()
+    print "Finished calibrating"
 
 def grip_control(hand, cl_op):
     #Close = 1, open = 0
@@ -33,11 +38,11 @@ def grip_control(hand, cl_op):
     grip.set_moving_force(80)
     if cl_op:
         grip.close(block=True)
-        print("Closed ", hand ," gripper!")
+        print("Closed " + hand +" gripper!")
         #rospy.sleep(1.0)
     else:
         grip.open(block=True)
-        print("Opened ", hand ," gripper!")
+        print("Opened " + hand +" gripper!")
         #rospy.sleep(1.0)
 
 def parse_rot(rot):
@@ -53,20 +58,20 @@ def parse_rot(rot):
 def move_limb(hand, move):
     limb = baxter_interface.Limb(hand)
     limb.move_to_joint_positions(move)
-    print(hand, "limb moved")
+    print(hand + " limb moved")
 
 def rotate_side(hand, rot_ang):
     limb = baxter_interface.Limb(hand)
     angles = limb.joint_angles()
     angles[hand + '_w2'] = angles[hand + '_w2'] + rot_ang
     limb.move_to_joint_positions(angles)
-    print("Side rotated to ", rot_ang)
+    print("Side rotated to " + str(rot_ang))
     
 # Conversion to motion
 def rotation2motion(rot):
     r = rospy.Rate(0.2)
     [rot, rot_ang] = parse_rot(rot)
-    [right_move, left_move] = joint2limb(r2m_dict[rot])
+    [left_move, right_move] = r2m_dict[rot][0:2]
 
     move_limb("left",left_move)
     move_limb("right", right_move)
@@ -90,13 +95,21 @@ def solution(kubic):
 
 def manipulation(sol):
     sol = sol.split(" ")
+    print("Move to zero position.")
+    raw_input("Press Enter to continue...")
+    move_limb("left",lh_zero_pos)
+    move_limb("right", rh_zero_pos)
+    print("Prepare grippers for calibration.")
+    raw_input("Press Enter to continue...")
+    grip_calibrate()
     grip_control("left", 0)
     grip_control("right", 0)
     print("Put kubic in robot right hand.")
     raw_input("Press Enter to continue...")
     grip_control("left", 0)
     grip_control("right", 1)
-    for i in sol:
+    for c, i in enumerate(sol):
+        print("Doing: " + str(i) + " Done: " + str(c) + "/" + str(len(sol)))
         rotation2motion(i)
     return 1
 
