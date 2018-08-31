@@ -22,6 +22,8 @@ r2m_dict={"U":[lh_U_c, rh_U, 0],
           "B":[lh_B, rh_B_c, 1]
 }
 
+current_hand = 1 #Start with cubic in right hand
+
 def grip_calibrate():
     print "Calibrating grippers..."
     grip_l = gripper.Gripper("left")
@@ -32,7 +34,15 @@ def grip_calibrate():
 
 def grip_control(hand, cl_op):
     #Close = 1, open = 0
-    grip = gripper.Gripper(hand)
+    while True:
+        try:
+            grip = gripper.Gripper(hand)
+            break
+        except:
+            print("ERROR, can not connect to gripper!")
+            rospy.sleep(1.0)
+            print hand
+            print("Attempt reconnecting...")
     grip.set_holding_force(50)
     grip.set_dead_band(1)
     grip.set_moving_force(80)
@@ -66,18 +76,55 @@ def rotate_side(hand, rot_ang):
     angles[hand + '_w2'] = angles[hand + '_w2'] + rot_ang
     limb.move_to_joint_positions(angles)
     print("Side rotated to " + str(rot_ang))
+
+def change_hand(right):
+    global current_hand
+    limb_r = baxter_interface.Limb("right")
+    limb_l = baxter_interface.Limb("left")
+    if right:
+        print("Changing hand, r2l...")
+        limb_r.move_to_joint_positions(rh_change_r2l_p)
+        limb_l.move_to_joint_positions(lh_change_r2l_p)
+        limb_r.move_to_joint_positions(rh_change_r2l)
+        limb_l.move_to_joint_positions(lh_change_r2l)
+        grip_control("left", 1)
+        grip_control("right", 0)
+        print("Hand changed! Now cubic in left hand.")
+    else:
+        print("Changing hand, l2r...")
+        limb_r.move_to_joint_positions(rh_change_l2r_p)
+        limb_l.move_to_joint_positions(lh_change_l2r_p)
+        limb_r.move_to_joint_positions(rh_change_l2r)
+        limb_l.move_to_joint_positions(lh_change_l2r)
+        grip_control("left", 1)
+        grip_control("right", 0)
+        print("Hand changed! Now cubic in right hand.")
+    current_hand = 1 - current_hand
     
 # Conversion to motion
 def rotation2motion(rot):
+    global current_hand
     r = rospy.Rate(0.2)
     [rot, rot_ang] = parse_rot(rot)
-    [left_move, right_move] = r2m_dict[rot][0:2]
-
-    move_limb("left",left_move)
-    move_limb("right", right_move)
-    grip_control("left", 1)
-    rotate_side("left", rot_ang)
-    grip_control("left", 0)
+    motion_mass = r2m_dict[rot]
+    [left_move, right_move] = motion_mass[0:2]
+    if motion_mass[2]!=current_hand:
+        change_hand(current_hand)
+    if current_hand:
+        move_limb("left",left_move)
+        move_limb("right", right_move)
+        grip_control("left", 1)
+        rotate_side("left", rot_ang)
+        grip_control("left", 0)
+    else:
+        move_limb("left",left_move)
+        move_limb("right", right_move)
+        grip_control("right", 1)
+        rotate_side("right", rot_ang)
+        grip_control("right", 0)
+    print "Returning to zero pos..."
+    move_limb("left", lh_zero_pos)
+    move_limb("right", rh_zero_pos)        
     print "Waiting for next hand motion:"
     r.sleep
     return
