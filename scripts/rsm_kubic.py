@@ -14,6 +14,12 @@ import kociemba
 from math import pi
 from joint_params import *
 
+#Recognition
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+import cv2
+
+
 r2m_dict={"U":[lh_U_c, rh_U, 0],
           "D":[lh_D_c, rh_D, 0],
           "L":[lh_L, rh_L_c, 1],
@@ -22,7 +28,27 @@ r2m_dict={"U":[lh_U_c, rh_U, 0],
           "B":[lh_B, rh_B_c, 1]
 }
 
+r_camera_move_L = r_camera_move_B = r_camera_move_B = rh_zero_pos
+l_camera_move_U = l_camera_move_F = l_camera_move_DB = rh_zero_pos
+
 current_hand = 1 #Start with cubic in right hand
+take_picture = ""
+
+def image_callback(msg):
+    global take_picture
+    bridge = CvBridge()
+    if take_picture:
+        print("Received an image!")
+        try:
+            # Convert your ROS Image message to OpenCV2
+            cv2_img = bridge.imgmsg_to_cv2(msg, "bgr8")
+        except CvBridgeError, e:
+            print(e)
+        else:
+            # Save your OpenCV2 image as a jpeg
+            cv2.imwrite(take_picture, cv2_img)
+            take_picture = ""
+
 
 def grip_calibrate():
     print "Calibrating grippers..."
@@ -130,8 +156,26 @@ def rotation2motion(rot):
     return
 
 #Recognition
-def recognition(camera_topic):
+def recognition():
+    global take_picture
+    print "Saving rubiks cube side pictures..."
+    move_limb("right",r_camera_move_L)
+    take_picture = "rubiks-side-L.png"
+    move_limb("right",r_camera_move_F)
+    take_picture = "rubiks-side-F.png"
+    move_limb("right",r_camera_move_B)
+    take_picture = "rubiks-side-B.png"
+    change_hand(1)
+    move_limb("left",l_camera_move_U)
+    take_picture = "rubiks-side-U.png"
+    move_limb("left",l_camera_move_R)
+    take_picture = "rubiks-side-R.png"
+    move_limb("left",l_camera_move_D)
+    take_picture = "rubiks-side-D.png"
+    print "All sides pictures taken! Analyzing..."
+    
     kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
+    print "Cubic recognized!"
     return kubic
 
 #Solution
@@ -142,6 +186,12 @@ def solution(kubic):
 
 def manipulation(sol):
     sol = sol.split(" ")
+    for c, i in enumerate(sol):
+        print("Doing: " + str(i) + " Done: " + str(c) + "/" + str(len(sol)))
+        rotation2motion(i)
+    return 1
+
+def calib_init():
     print("Move to zero position.")
     raw_input("Press Enter to continue...")
     move_limb("left",lh_zero_pos)
@@ -155,14 +205,14 @@ def manipulation(sol):
     raw_input("Press Enter to continue...")
     grip_control("left", 0)
     grip_control("right", 1)
-    for c, i in enumerate(sol):
-        print("Doing: " + str(i) + " Done: " + str(c) + "/" + str(len(sol)))
-        rotation2motion(i)
-    return 1
 
 def main():
     rospy.init_node("rsm_kubic")
-    kubic = recognition("")
+    print("This node performs recognition, solution, and manipulation of cubic rubic...")
+    #calib_init()
+    image_topic = "/cameras/head_camera/image"
+    rospy.Subscriber(image_topic, Image, image_callback)
+    kubic = recognition()
     sol = solution(kubic)
     manipulation(sol)
     
