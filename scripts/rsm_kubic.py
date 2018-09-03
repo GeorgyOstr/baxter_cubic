@@ -1,5 +1,17 @@
 #!/usr/bin/python
 
+#Parser
+import argparse
+import os, sys, json
+parser = argparse.ArgumentParser("Rubiks Square Extractor")
+parser.add_argument('-d', '--directory', type=str, help='Directory of images to examine', default=".")
+args = parser.parse_args()
+
+#Dwalton cubic tracker and resolver
+from rubikscubetracker import RubiksVideo, RubiksImage, merge_two_dicts
+import subprocess #For resolver
+import shlex
+
 #ROS+Baxter
 import rospy
 import baxter_interface
@@ -11,7 +23,7 @@ from pycuber.solver import CFOPSolver
 import kociemba
 
 #Constants
-from math import pi
+from math import pi, sqrt
 from joint_params import *
 
 #Recognition
@@ -28,9 +40,6 @@ r2m_dict={"U":[lh_U_c, rh_U, 0],
           "B":[lh_B, rh_B_c, 1]
 }
 
-r_camera_move_L = r_camera_move_B = r_camera_move_B = rh_zero_pos
-l_camera_move_U = l_camera_move_F = l_camera_move_DB = rh_zero_pos
-
 current_hand = 1 #Start with cubic in right hand
 take_picture = ""
 
@@ -46,7 +55,7 @@ def image_callback(msg):
             print(e)
         else:
             # Save your OpenCV2 image as a jpeg
-            cv2.imwrite(take_picture, cv2_img)
+            cv2.imwrite(args.directory + "/" + take_picture, cv2_img)
             take_picture = ""
 
 
@@ -64,8 +73,9 @@ def grip_control(hand, cl_op):
         try:
             grip = gripper.Gripper(hand)
             break
-        except:
+        except Exception,e:
             print("ERROR, can not connect to gripper!")
+            print e
             rospy.sleep(1.0)
             print hand
             print("Attempt reconnecting...")
@@ -152,11 +162,11 @@ def rotation2motion(rot):
     move_limb("left", lh_zero_pos)
     move_limb("right", rh_zero_pos)        
     print "Waiting for next hand motion:"
-    r.sleep
+    #r.sleep
     return
 
 #Recognition
-def recognition():
+def get_pictures_of_sides():
     global take_picture
     print "Saving rubiks cube side pictures..."
     move_limb("right",r_camera_move_L)
@@ -173,14 +183,50 @@ def recognition():
     move_limb("left",l_camera_move_D)
     take_picture = "rubiks-side-D.png"
     print "All sides pictures taken! Analyzing..."
+
+def run_command(command):
+    process = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE)
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+        if output:
+            data = output.strip()
+    rc = process.poll()
+    print "Kociemba is:", data
+    return data
     
-    kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
+def recognition():
+    get_pictures_of_sides()
+    data = {}  
+    cube_size = None
+    if not os.path.isdir(args.directory):
+        print "ERROR: directory %s does not exist" % args.directory
+        sys.exit(1)
+    for (side_index, side_name) in enumerate(('U', 'L', 'F', 'R', 'B', 'D')):
+        filename = os.path.join(args.directory, "rubiks-side-%s.png" % side_name)
+        rimg = RubiksImage(side_index, side_name, debug=False)
+        rimg.analyze_file(filename, cube_size)
+        print side_name
+        if cube_size is None:
+            side_square_count = len(rimg.data.keys())
+            cube_size = int(sqrt(side_square_count))
+        data = merge_two_dicts(data, rimg.data)
+    #print "rubiks-color-resolver.py --json --rgb " + str(data) 
+    #print(json.dumps(data, sort_keys=True))
+    command = "rubiks-color-resolver.py  --rgb '" + str(json.dumps(data, sort_keys=True)) + "'"#+"|grep kociemba"
+    #proc=subprocess.check_call(str(command), shell=True, stdout=subprocess.PIPE)
+    #kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
+    kubic = run_command(command)
     print "Cubic recognized!"
     return kubic
 
 #Solution
 def solution(kubic):
-    return kociemba.solve(kubic)
+    print "Searching solution..."
+    sol = kociemba.solve(kubic)
+    print sol
+    return sol
     
 #Manipulation
 
@@ -209,11 +255,12 @@ def calib_init():
 def main():
     rospy.init_node("rsm_kubic")
     print("This node performs recognition, solution, and manipulation of cubic rubic...")
-    #calib_init()
+    calib_init()
     image_topic = "/cameras/head_camera/image"
     rospy.Subscriber(image_topic, Image, image_callback)
     kubic = recognition()
     sol = solution(kubic)
+    print "Found solution! Manipulating!!!"
     manipulation(sol)
     
 if __name__ == "__main__":
