@@ -175,7 +175,13 @@ def get_pictures_of_sides():
     take_picture = "rubiks-side-F.png"
     move_limb("right",r_camera_move_B)
     take_picture = "rubiks-side-B.png"
+    print("Move to zero position.")
+    move_limb("left",lh_zero_pos)
+    move_limb("right", rh_zero_pos)                  
     change_hand(1)
+    print("Move to zero position.")
+    move_limb("left",lh_zero_pos)
+    move_limb("right", rh_zero_pos)
     move_limb("left",l_camera_move_U)
     take_picture = "rubiks-side-U.png"
     move_limb("left",l_camera_move_R)
