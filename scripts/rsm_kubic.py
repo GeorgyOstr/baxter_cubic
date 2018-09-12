@@ -5,6 +5,9 @@ import argparse
 import os, sys, json
 parser = argparse.ArgumentParser("Rubiks Square Extractor")
 parser.add_argument('-d', '--directory', type=str, help='Directory of images to examine', default=".")
+parser.add_argument('-nc', '--nocalibration', type=bool, help='Run without calibration', default=False)
+parser.add_argument('-v', '--cameratopic', type=str, help='Specify camera topic', default="/cameras/head_camera/image")
+
 args = parser.parse_args()
 
 #Dwalton cubic tracker and resolver
@@ -248,9 +251,10 @@ def calib_init():
     raw_input("Press Enter to continue...")
     move_limb("left",lh_zero_pos)
     move_limb("right", rh_zero_pos)
-    print("Prepare grippers for calibration.")
-    raw_input("Press Enter to continue...")
-    grip_calibrate()
+    if not args.nocalibration:
+        print("Prepare grippers for calibration.")
+        raw_input("Press Enter to continue...")
+        grip_calibrate()
     grip_control("left", 0)
     grip_control("right", 0)
     print("Put kubic in robot right hand.")
@@ -262,7 +266,7 @@ def main():
     rospy.init_node("rsm_kubic")
     print("This node performs recognition, solution, and manipulation of cubic rubic...")
     calib_init()
-    image_topic = "/cameras/head_camera/image"
+    image_topic = args.cameratopic
     rospy.Subscriber(image_topic, Image, image_callback)
     kubic = recognition()
     sol = solution(kubic)
