@@ -173,11 +173,17 @@ def get_pictures_of_sides():
     global take_picture
     print "Saving rubiks cube side pictures..."
     move_limb("right",r_camera_move_L)
+    rospy.sleep(0.5)        
     take_picture = "rubiks-side-L.png"
+    rospy.sleep(0.5)
     move_limb("right",r_camera_move_F)
+    rospy.sleep(0.5)
     take_picture = "rubiks-side-F.png"
+    rospy.sleep(0.5)
     move_limb("right",r_camera_move_B)
+    rospy.sleep(0.5)
     take_picture = "rubiks-side-B.png"
+    rospy.sleep(0.5)
     print("Move to zero position.")
     move_limb("left",lh_zero_pos)
     move_limb("right", rh_zero_pos)                  
@@ -186,11 +192,17 @@ def get_pictures_of_sides():
     move_limb("left",lh_zero_pos)
     move_limb("right", rh_zero_pos)
     move_limb("left",l_camera_move_U)
+    rospy.sleep(0.5) 
     take_picture = "rubiks-side-U.png"
+    rospy.sleep(0.5)
     move_limb("left",l_camera_move_R)
+    rospy.sleep(0.5)
     take_picture = "rubiks-side-R.png"
+    rospy.sleep(0.5)
     move_limb("left",l_camera_move_D)
+    rospy.sleep(0.5)
     take_picture = "rubiks-side-D.png"
+    rospy.sleep(0.5)
     print "All sides pictures taken! Analyzing..."
 
 def run_command(command):
