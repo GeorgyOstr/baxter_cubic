@@ -88,11 +88,11 @@ def grip_control(hand, cl_op):
     if cl_op:
         grip.close(block=True)
         print("Closed " + hand +" gripper!")
-        #rospy.sleep(1.0)
+        rospy.sleep(1.0)
     else:
         grip.open(block=True)
         print("Opened " + hand +" gripper!")
-        #rospy.sleep(1.0)
+        rospy.sleep(1.0)
 
 def parse_rot(rot):
     if "'" in rot:
@@ -149,6 +149,8 @@ def rotation2motion(rot):
     [left_move, right_move] = motion_mass[0:2]
     if motion_mass[2]!=current_hand:
         change_hand(current_hand)
+        move_limb("left", lh_zero_pos)
+        move_limb("right", rh_zero_pos)       
     if current_hand:
         move_limb("left",left_move)
         move_limb("right", right_move)
@@ -240,7 +242,15 @@ def recognition():
     #kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
     kubic = run_command(command)
     print "Cubic recognized!"
-    return kubic
+    print kubic
+    kubic_fix = raw_input("Please insert the right kubic configuration if it did not recognized it correctly!")
+    if len(kubic_fix)<len("DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"):
+        print("There was no fix...")   
+        return kubic
+    else:
+        print("The cube is fixed a bit: ")
+        print(kubic_fix)
+        return kubic_fix
 
 #Solution
 def solution(kubic):
