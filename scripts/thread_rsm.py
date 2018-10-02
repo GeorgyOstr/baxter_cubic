@@ -195,12 +195,13 @@ def run_command(command):
     return data
     
 def recognition():
-    if args.webcam is not None:
-        rvid = RubiksVideo(args.webcam)
-        kubic = rvid.analyze_webcam()
     thread = Thread(target = get_pictures_of_sides, args = (10, ))
     thread.start()
     thread.join()
+    if args.webcam is not None:
+        rvid = RubiksVideo(args.webcam)
+        kubic = rvid.analyze_webcam()
+
     print "thread finished...exiting"
                     
     print kubic
