@@ -201,12 +201,8 @@ def recognition():
     if args.webcam is not None:
         rvid = RubiksVideo(args.webcam)
         kubic = rvid.analyze_webcam()
-
-    print "thread finished...exiting"
-                    
-    print kubic
+    print "thread finished...exiting"                
     #kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
-    kubic = run_command(command)
     print "Cubic recognized!"
     print kubic
     kubic_fix = raw_input("Please insert the right kubic configuration if it did not recognized it correctly!")
