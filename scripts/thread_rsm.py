@@ -195,7 +195,7 @@ def run_command(command):
     return data
     
 def recognition():
-    thread = Thread(target = get_pictures_of_sides, args = (10, ))
+    thread = Thread(target = get_pictures_of_sides)
     thread.start()
     thread.join()
     if args.webcam is not None:
