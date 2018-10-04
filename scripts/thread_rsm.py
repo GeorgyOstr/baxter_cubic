@@ -14,6 +14,7 @@ from rubikscubetracker import RubiksVideo, RubiksImage, merge_two_dicts
 from threading import Thread
 import subprocess #For resolver
 import shlex
+from multiprocessing import Pool    
 
 #ROS+Baxter
 import rospy
@@ -193,18 +194,25 @@ def run_command(command):
     rc = process.poll()
     print "Kociemba is:", data
     return data
-    
-def recognition():
-    thread = Thread(target = get_pictures_of_sides)
-    thread.start()
-    thread.join()
+
+def run_recog:
+    global kubic_return
     if args.webcam is not None:
         rvid = RubiksVideo(args.webcam)
         kubic = rvid.analyze_webcam()
+        
     print "thread finished...exiting"                
     #kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
     print "Cubic recognized!"
     print kubic
+    kubic_return = kubic
+    return kubic
+
+def recognition():
+    global kubic_return
+    Thread(target = get_pictures_of_sides).start()
+    Thread(target = run_recog).start()
+    kubic = kubic_return
     kubic_fix = raw_input("Please insert the right kubic configuration if it did not recognized it correctly!")
     if len(kubic_fix)<len("DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"):
         print("There was no fix...")   
