@@ -6,6 +6,7 @@ import os, sys, json
 parser = argparse.ArgumentParser("Rubiks Square Extractor")
 parser.add_argument('-nc', '--nocalibration', type=bool, help='Run without calibration', default=False)
 parser.add_argument('-w', '--webcam', type=int, default=None, help='webcam to use...0, 1, etc')
+parser.add_argument('-d', '--delay', type=int, default=None, help='Delay for recognition in sec: 5, 10, 15 etc')
 
 args = parser.parse_args()
 
@@ -160,7 +161,7 @@ def rotation2motion(rot):
 #Recognition
 def get_pictures_of_sides():
     global take_picture
-    sl_time = 2;
+    sl_time = args.delay;
     print "Saving rubiks cube side pictures..."
     move_limb("right",r_camera_move_L)
     rospy.sleep(sl_time)        
@@ -195,14 +196,15 @@ def run_command(command):
     print "Kociemba is:", data
     return data
 
-def run_recog:
+def run_recog():
     global kubic_return
+    kubic_return = "Not enough time!!!"
+    
     if args.webcam is not None:
         rvid = RubiksVideo(args.webcam)
         kubic = rvid.analyze_webcam()
         
     print "thread finished...exiting"                
-    #kubic = "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD"
     print "Cubic recognized!"
     print kubic
     kubic_return = kubic
